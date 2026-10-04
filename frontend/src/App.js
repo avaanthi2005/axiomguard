@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -56,15 +56,28 @@ function NavAuthControls() {
 
 function AppShell() {
   const { isAuthenticated } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <Router>
       <nav className="navbar">
-        <div>
+        <div className="navbar-brand">
           <div className="navbar-logo">⚔ AXIOMGUARD</div>
           <div className="navbar-tagline">"Because security should be absolute."</div>
         </div>
-        <ul className="nav-links">
+        <button
+          type="button"
+          className={menuOpen ? 'nav-toggle open' : 'nav-toggle'}
+          aria-label="Toggle menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((o) => !o)}
+        >
+          <span /><span /><span />
+        </button>
+        <ul
+          className={menuOpen ? 'nav-links open' : 'nav-links'}
+          onClick={() => setMenuOpen(false)}
+        >
           {isAuthenticated && (
             <>
               <li><NavLink to="/" end>HOME</NavLink></li>
