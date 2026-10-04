@@ -18,7 +18,7 @@ except Exception:
 router = APIRouter()
 
 
-def run_full_guard_analysis(url: str, user_id: int = None) -> dict:
+def run_full_guard_analysis(url: str, user_id: int = None, explain: bool = True) -> dict:
     if not url.startswith('http'):
         url = 'https://' + url
 
@@ -70,7 +70,7 @@ def run_full_guard_analysis(url: str, user_id: int = None) -> dict:
         "reputation": reputation
     }
 
-    if get_gemini_explanation is not None:
+    if explain and get_gemini_explanation is not None:
         try:
             result["ai_explanation"] = get_gemini_explanation("guard", result)
         except Exception as e:
@@ -99,7 +99,10 @@ async def guard_analyze(data: dict, current_user: dict = Depends(get_current_use
     if not url:
         return {"error": "No URL provided"}
     user_id = current_user["id"] if current_user else None
-    return run_full_guard_analysis(url, user_id=user_id)
+    # The Chrome extension checks every page and never shows the AI text,
+    # so skip Gemini for it to save the free quota.
+    explain = data.get("source") != "extension"
+    return run_full_guard_analysis(url, user_id=user_id, explain=explain)
 
 
 @router.post("/report")
