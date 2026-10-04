@@ -1284,3 +1284,24 @@ textarea {
     display: none;
   }
 }
+
+/* ---- Mobile navbar fix ---- */
+html, body { overflow-x: hidden; }
+@media (max-width: 900px) {
+  .navbar {
+    height: auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+  }
+  .navbar-logo { font-size: 1.15rem; }
+  .navbar-tagline { display: none; }
+  .nav-links {
+    flex-wrap: wrap;
+    gap: 0.25rem 0.35rem;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  .nav-links a { font-size: 0.72rem; padding: 0.35rem 0.55rem; letter-spacing: 0.5px; }
+}

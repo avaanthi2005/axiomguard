@@ -2,6 +2,14 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+const PASSWORD_RULES = [
+  { id: 'len',   label: 'At least 8 characters',          test: (p) => p.length >= 8 },
+  { id: 'upper', label: 'One uppercase letter (A-Z)',      test: (p) => /[A-Z]/.test(p) },
+  { id: 'lower', label: 'One lowercase letter (a-z)',      test: (p) => /[a-z]/.test(p) },
+  { id: 'num',   label: 'One number (0-9)',                test: (p) => /[0-9]/.test(p) },
+  { id: 'sym',   label: 'One symbol (e.g. ! @ # $ % &)',   test: (p) => /[^A-Za-z0-9]/.test(p) },
+];
+
 export default function SignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -24,8 +32,9 @@ export default function SignupPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+    const failed = PASSWORD_RULES.filter((r) => !r.test(password));
+    if (failed.length > 0) {
+      setError('Password needs: ' + failed.map((r) => r.label.toLowerCase()).join(', ') + '.');
       return;
     }
 
@@ -42,7 +51,10 @@ export default function SignupPage() {
       navigate('/', { replace: true });
     } catch (err) {
       const detail = err.response?.data?.detail;
-      setError(detail || 'Signup failed. Please try again.');
+      const msg = Array.isArray(detail)
+        ? detail.map((d) => (d.msg || '').replace('Value error, ', '')).join('. ')
+        : detail;
+      setError(msg || 'Signup failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -119,6 +131,10 @@ export default function SignupPage() {
         @keyframes ag-hover { 0%,100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-13px) rotate(1deg); } }
         @keyframes ag-orbit { to { transform: rotateX(66deg) rotateZ(346deg); } }
 
+        .ag-rules { list-style: none; margin: -6px 0 18px; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; }
+        .ag-rule { color: #8293ad; font-size: 12px; transition: color .2s; }
+        .ag-rule span { display: inline-block; width: 14px; }
+        .ag-rule.ok { color: #3ee0a0; }
         @media (max-width: 850px) {
           .ag-signup-page { grid-template-columns: 1fr; width: min(560px, calc(100% - 32px)); min-height: calc(100vh - 70px); padding: 34px 0; }
           .ag-brand { padding-left: 0; text-align: center; }
@@ -129,6 +145,7 @@ export default function SignupPage() {
           .ag-float-two { left: -3%; }
         }
         @media (max-width: 480px) {
+          .ag-rules { grid-template-columns: 1fr; }
           .ag-card { padding: 26px 20px; border-radius: 24px; }
           .ag-float { display: none; }
         }
@@ -171,8 +188,15 @@ export default function SignupPage() {
 
             <div className="ag-field">
               <label className="ag-label" htmlFor="signup-password">Password</label>
-              <div className="ag-input-wrap"><span className="ag-icon">♙</span><input className="ag-input" id="signup-password" type={showPassword ? 'text' : 'password'} placeholder="Password (min. 6 characters)" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="new-password" /><button className="ag-toggle" type="button" onClick={() => setShowPassword(!showPassword)}>{showPassword ? 'Hide' : 'Show'}</button></div>
+              <div className="ag-input-wrap"><span className="ag-icon">♙</span><input className="ag-input" id="signup-password" type={showPassword ? 'text' : 'password'} placeholder="Create a strong password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="new-password" /><button className="ag-toggle" type="button" onClick={() => setShowPassword(!showPassword)}>{showPassword ? 'Hide' : 'Show'}</button></div>
             </div>
+            <ul className="ag-rules" aria-label="Password requirements">
+              {PASSWORD_RULES.map((r) => (
+                <li key={r.id} className={r.test(password) ? 'ag-rule ok' : 'ag-rule'}>
+                  <span>{r.test(password) ? '✓' : '○'}</span> {r.label}
+                </li>
+              ))}
+            </ul>
 
             <div className="ag-field">
               <label className="ag-label" htmlFor="signup-confirm-password">Confirm password</label>
