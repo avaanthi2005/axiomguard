@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+python-dotenv
+dnspython
+requests
+beautifulsoup4
+python-whois
+scikit-learn==1.9.0
+pandas
+numpy
+python-Levenshtein
+reportlab
+google-genai
+bcrypt
+python-jose[cryptography]
+pydantic[email]
