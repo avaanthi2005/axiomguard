@@ -3,6 +3,7 @@ import time
 import json
 import hashlib
 import requests
+import re
 from dotenv import load_dotenv
 try:
     from google import genai
@@ -45,8 +46,20 @@ def _prompt(module: str, data: dict) -> str:
         "You are AXIOMGUARD's cybersecurity explanation assistant. "
         "The supplied score and verdict were already calculated by AXIOMGUARD; do not change them. "
         "Explain the result in simple plain English for a non-technical reader in 4-6 concise sentences. "
+        "Use plain text only: no Markdown, no asterisks, no headings, and no bullet formatting. "
         f"{task}\n\nAnalysis data:\n{json.dumps(data, default=str, ensure_ascii=False)}"
     )
+
+
+def _clean_explanation(text: str) -> str:
+    """Normalize provider output so the React UI never shows raw Markdown markers."""
+    text = str(text or "").strip()
+    text = re.sub(r"\*\*(.*?)\*\*", r"\1", text)
+    text = re.sub(r"__(.*?)__", r"\1", text)
+    text = re.sub(r"`([^`]*)`", r"\1", text)
+    text = re.sub(r"^\s{0,3}#{1,6}\s*", "", text, flags=re.MULTILINE)
+    text = re.sub(r"^\s*[-*•]\s+", "", text, flags=re.MULTILINE)
+    return text.strip()
 
 
 def _extract_summary(module: str, data: dict):
@@ -103,6 +116,7 @@ def _call_gemini(prompt: str):
                 response = _gemini.models.generate_content(model=model, contents=prompt)
                 text = (getattr(response, "text", None) or "").strip()
                 if text:
+                    print(f"AI explanation provider: Gemini ({model})")
                     return text
                 break
             except Exception as exc:
@@ -137,6 +151,7 @@ def _call_groq(prompt: str):
             payload = response.json()
             text = payload.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
             if text:
+                print(f"AI explanation provider: Groq ({GROQ_MODEL})")
                 return text
         print(f"Groq call failed ({response.status_code}): {response.text[:300]}")
     except Exception as exc:
@@ -156,7 +171,13 @@ def get_gemini_explanation(module: str, data: dict) -> str:
         return hit[1]
 
     prompt = _prompt(module, data)
-    text = _call_gemini(prompt) or _call_groq(prompt) or _local_explanation(module, data)
+    text = _call_gemini(prompt)
+    if not text:
+        text = _call_groq(prompt)
+    if not text:
+        print("AI explanation provider: AXIOMGUARD local fallback")
+        text = _local_explanation(module, data)
+    text = _clean_explanation(text)
 
     if len(_CACHE) > 300:
         _CACHE.clear()
